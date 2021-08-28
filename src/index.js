@@ -1,5 +1,8 @@
 const fs = require("fs");
 const path = require("path");
+const PNF = require("google-libphonenumber").PhoneNumberFormat;
+const phoneUtil =
+  require("google-libphonenumber").PhoneNumberUtil.getInstance();
 
 fs.readFile(path.join(__dirname, "input.csv"), "utf8", (err, data) => {
   if (err) {
@@ -30,6 +33,46 @@ function createObjectFromCSV(csv) {
   }
 
   return res;
+}
+
+function group_addresses(obj) {
+  let addresses = [];
+
+  for (let person of obj) {
+    for (let key of Object.keys(person)) {
+      // checks keys of the objects to find 'email' or 'phone'
+      if (key.includes("email")) {
+        addresses.push({
+          type: "email",
+          tags: [...key.split(" ").filter((e) => e != "email")], // adds tags, removing the word 'email'
+          address: person[key],
+        });
+
+        delete person[key];
+      } else if (key.includes("phone")) {
+        let number;
+
+        // ignores invalid phone numbers
+        try {
+          number = phoneUtil.parseAndKeepRawInput(person[key], "BR");
+        } catch {
+          delete person[key];
+          continue;
+        }
+
+        if (phoneUtil.isValidNumber(number))
+          addresses.push({
+            type: "phone",
+            tags: [...key.split(" ").filter((e) => e != "phone")],
+            address: phoneUtil.format(number, PNF.E164).slice(1),
+          });
+
+        delete person[key];
+      }
+    }
+
+    person.addresses = addresses;
+  }
 }
 
 function exportJSON(obj, name) {
