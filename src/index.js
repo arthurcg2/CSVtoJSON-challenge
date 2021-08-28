@@ -4,7 +4,7 @@ const PNF = require("google-libphonenumber").PhoneNumberFormat;
 const phoneUtil =
   require("google-libphonenumber").PhoneNumberUtil.getInstance();
 
-fs.readFile(path.join(__dirname, "input1.csv"), "utf8", (err, data) => {
+fs.readFile(path.join(__dirname, "input.csv"), "utf8", (err, data) => {
   if (err) {
     console.error(err);
     return;
@@ -15,7 +15,7 @@ fs.readFile(path.join(__dirname, "input1.csv"), "utf8", (err, data) => {
   joinGroups(obj);
   joinAddresses(obj);
   joinDuplicatedPersons(obj);
-  exportJSON(obj, "output-test");
+  exportJSON(obj, "output");
 });
 
 function createObjectFromCSV(csv) {
