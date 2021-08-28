@@ -11,6 +11,7 @@ fs.readFile(path.join(__dirname, "input.csv"), "utf8", (err, data) => {
   }
 
   let obj = createObjectFromCSV(data);
+  joinGroups(obj);
   groupAddresses(obj);
   exportJSON(obj, "output-test");
 });
@@ -23,10 +24,21 @@ function createObjectFromCSV(csv) {
 
   for (let i = 1; i < lines.length; i++) {
     let currentObject = {};
-    const currentLine = lines[i].split(",").map((el) => el.replace(/\"/g, ""));
+
+    // split current line by commas, using regex to ignore commas inside quotes
+    const currentLine = lines[i]
+      .split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/)
+      .map((el) => el.replace(/\"/g, ""));
 
     for (let j = 0; j < cols.length; j++) {
-      currentObject[cols[j]] = currentLine[j];
+      // if the column is unique, sets its value
+      if (!currentObject[cols[j]]) currentObject[cols[j]] = currentLine[j];
+      else {
+        // otherwise, create an array and append the value (or just append it if its already an array)
+        if (currentObject[cols[j]] instanceof Array)
+          currentObject[cols[j]].append(currentLine[j]);
+        else currentObject[cols[j]] = [currentObject[cols[j]], currentLine[j]];
+      }
     }
 
     res.push(currentObject);
@@ -52,21 +64,21 @@ function groupAddresses(obj) {
 
         delete person[key];
       } else if (key.includes("phone")) {
-        let number;
+        let phoneNumber;
 
         // ignores invalid phone numbers
         try {
-          number = phoneUtil.parseAndKeepRawInput(person[key], "BR");
+          phoneNumber = phoneUtil.parseAndKeepRawInput(person[key], "BR");
         } catch {
           delete person[key];
           continue;
         }
 
-        if (phoneUtil.isValidNumber(number))
+        if (phoneUtil.isValidNumber(phoneNumber))
           addresses.push({
             type: "phone",
             tags: [...key.split(" ").filter((e) => e != "phone")],
-            address: phoneUtil.format(number, PNF.E164).slice(1),
+            address: phoneUtil.format(phoneNumber, PNF.E164).slice(1),
           });
 
         delete person[key];
@@ -74,6 +86,23 @@ function groupAddresses(obj) {
     }
 
     person.addresses = addresses;
+  }
+}
+
+function joinGroups(obj) {
+  for (let person of obj) {
+    let groups = [];
+
+    person.group?.forEach((group, i) => {
+      // splits groups by ',' and '/', trimming the results
+      let splittedGroup = group.split(/[,\/]/g);
+      splittedGroup = splittedGroup.map((e) => e.trim());
+
+      groups = groups.concat(splittedGroup);
+    });
+
+    delete person.group;
+    person.groups = groups;
   }
 }
 
