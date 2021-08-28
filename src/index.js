@@ -12,7 +12,8 @@ fs.readFile(path.join(__dirname, "input.csv"), "utf8", (err, data) => {
 
   let obj = createObjectFromCSV(data);
   joinGroups(obj);
-  groupAddresses(obj);
+  joinAddresses(obj);
+  joinDuplicatedPersons(obj);
   exportJSON(obj, "output-test");
 });
 
@@ -47,10 +48,10 @@ function createObjectFromCSV(csv) {
   return res;
 }
 
-function groupAddresses(obj) {
-  let addresses = [];
-
+function joinAddresses(obj) {
   for (let person of obj) {
+    let addresses = [];
+
     for (let key of Object.keys(person)) {
       // checks keys of the objects to find 'email' or 'phone'
       if (key.includes("email")) {
@@ -103,6 +104,23 @@ function joinGroups(obj) {
 
     delete person.group;
     person.groups = groups;
+  }
+}
+
+function joinDuplicatedPersons(obj) {
+  for (let i = 0; i < obj.length; i++) {
+    for (let j = i + 1; j < obj.length; j++) {
+      // find duplicates of the person
+      if (obj[i].eid == obj[j].eid) {
+        obj[i].groups = [...new Set([...obj[i].groups, ...obj[j].groups])];
+        obj[i].addresses = [
+          ...new Set([...obj[i].addresses, ...obj[j].addresses]),
+        ];
+
+        // remove from array
+        obj.splice(j, 1);
+      }
+    }
   }
 }
 
