@@ -4,7 +4,7 @@ const PNF = require("google-libphonenumber").PhoneNumberFormat;
 const phoneUtil =
   require("google-libphonenumber").PhoneNumberUtil.getInstance();
 
-fs.readFile(path.join(__dirname, "input.csv"), "utf8", (err, data) => {
+fs.readFile(path.join(__dirname, "input1.csv"), "utf8", (err, data) => {
   if (err) {
     console.error(err);
     return;
@@ -38,7 +38,7 @@ function createObjectFromCSV(csv) {
       else {
         // otherwise, create an array and append the value (or just append it if its already an array)
         if (currentObject[cols[j]] instanceof Array)
-          currentObject[cols[j]].append(currentLine[j]);
+          currentObject[cols[j]].push(currentLine[j]);
         else currentObject[cols[j]] = [currentObject[cols[j]], currentLine[j]];
       }
     }
@@ -104,13 +104,17 @@ function joinGroups(obj) {
   for (let person of obj) {
     let groups = [];
 
-    person.group?.forEach((group, i) => {
-      // splits groups by ',' and '/', trimming the results and removing empty strings
-      let splittedGroup = group.split(/[,\/]/g);
-      splittedGroup = splittedGroup.map((e) => e.trim()).filter((e) => e != "");
+    if (person.group instanceof Array) {
+      person.group.forEach((group) => {
+        // splits groups by ',' and '/', trimming the results and removing empty strings
+        let splittedGroup = group.split(/[,\/]/g);
+        splittedGroup = splittedGroup
+          .map((e) => e.trim())
+          .filter((e) => e != "");
 
-      groups = groups.concat(splittedGroup);
-    });
+        groups = groups.concat(splittedGroup);
+      });
+    }
 
     delete person.group;
     person.groups = groups;
