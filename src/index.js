@@ -11,7 +11,7 @@ fs.readFile(path.join(__dirname, "input.csv"), "utf8", (err, data) => {
   }
 
   let obj = createObjectFromCSV(data);
-  group_addresses(obj);
+  groupAddresses(obj);
   exportJSON(obj, "output-test");
 });
 
@@ -23,7 +23,7 @@ function createObjectFromCSV(csv) {
 
   for (let i = 1; i < lines.length; i++) {
     let currentObject = {};
-    const currentLine = lines[i].split(",");
+    const currentLine = lines[i].split(",").map((el) => el.replace(/\"/g, ""));
 
     for (let j = 0; j < cols.length; j++) {
       currentObject[cols[j]] = currentLine[j];
@@ -35,17 +35,19 @@ function createObjectFromCSV(csv) {
   return res;
 }
 
-function group_addresses(obj) {
+function groupAddresses(obj) {
   let addresses = [];
 
   for (let person of obj) {
     for (let key of Object.keys(person)) {
       // checks keys of the objects to find 'email' or 'phone'
       if (key.includes("email")) {
-        addresses.push({
-          type: "email",
-          tags: [...key.split(" ").filter((e) => e != "email")], // adds tags, removing the word 'email'
-          address: person[key],
+        validateAndReturnEmail(person[key])?.forEach((email) => {
+          addresses.push({
+            type: "email",
+            tags: [...key.split(" ").filter((e) => e != "email")], // adds tags, removing the word 'email'
+            address: email,
+          });
         });
 
         delete person[key];
@@ -73,6 +75,13 @@ function group_addresses(obj) {
 
     person.addresses = addresses;
   }
+}
+
+function validateAndReturnEmail(email) {
+  // returns all matches of emails in a string
+  return email.match(
+    /(([^<>()\[\]\\\/.,;:\s@"]+(\.[^<>()\[\]\\\/.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))/g
+  );
 }
 
 function exportJSON(obj, name) {
