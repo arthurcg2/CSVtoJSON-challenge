@@ -11,6 +11,7 @@ fs.readFile(path.join(__dirname, "input.csv"), "utf8", (err, data) => {
   }
 
   let obj = createObjectFromCSV(data);
+  convertToBooleanValues(obj);
   joinGroups(obj);
   joinAddresses(obj);
   joinDuplicatedPersons(obj);
@@ -26,7 +27,7 @@ function createObjectFromCSV(csv) {
   for (let i = 1; i < lines.length; i++) {
     let currentObject = {};
 
-    // split current line by commas, using regex to ignore commas inside quotes
+    // split current line by commas, using regex to ignore commas inside quotes, then removes quotes
     const currentLine = lines[i]
       .split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/)
       .map((el) => el.replace(/\"/g, ""));
@@ -46,6 +47,15 @@ function createObjectFromCSV(csv) {
   }
 
   return res;
+}
+
+function convertToBooleanValues(obj) {
+  const positiveOptions = ["yes", "1", 1];
+
+  for (person of obj) {
+    person.invisible = positiveOptions.includes(person.invisible);
+    person.see_all = positiveOptions.includes(person.see_all);
+  }
 }
 
 function joinAddresses(obj) {
@@ -95,9 +105,9 @@ function joinGroups(obj) {
     let groups = [];
 
     person.group?.forEach((group, i) => {
-      // splits groups by ',' and '/', trimming the results
+      // splits groups by ',' and '/', trimming the results and removing empty strings
       let splittedGroup = group.split(/[,\/]/g);
-      splittedGroup = splittedGroup.map((e) => e.trim());
+      splittedGroup = splittedGroup.map((e) => e.trim()).filter((e) => e != "");
 
       groups = groups.concat(splittedGroup);
     });
@@ -132,5 +142,8 @@ function validateAndReturnEmail(email) {
 }
 
 function exportJSON(obj, name) {
-  fs.writeFileSync(path.join(__dirname, `${name}.json`), JSON.stringify(obj));
+  fs.writeFileSync(
+    path.join(__dirname, `${name}.json`),
+    JSON.stringify(obj, null, 2)
+  );
 }
